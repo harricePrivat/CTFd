@@ -13,8 +13,8 @@ services:
       - REVERSE_PROXY=true
       - SECRET_KEY=CHANGE_ME_RANDOM_VALUE
     volumes:
-      - .data/CTFd/logs:/var/log/CTFd
-      - .data/CTFd/uploads:/var/uploads
+      - ctfd_logs:/var/log/CTFd
+      - ctfd_uploads:/var/uploads
       - .:/opt/CTFd:ro
     depends_on:
       permissions:
@@ -29,28 +29,27 @@ services:
       - dokploy-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.ctfd.rule=Host(`ctfd.briceprivat.works`)"
+      - "traefik.http.routers.ctfd.rule=Host(`ctf.briceprivat.works`)"
       - "traefik.http.routers.ctfd.entrypoints=websecure"
-      - "traefik.http.routers.ctfd.tls=true"
       - "traefik.http.routers.ctfd.tls.certResolver=letsencrypt"
       - "traefik.http.routers.ctfd.service=ctfd-service"
-  # HTTP → HTTPS redirect
-      - "traefik.http.routers.ctfd-http.rule=Host(`ctfd.briceprivat.works`)"
+      # HTTP → HTTPS redirect
+      - "traefik.http.routers.ctfd-http.rule=Host(`ctf.briceprivat.works`)"
       - "traefik.http.routers.ctfd-http.entrypoints=web"
       - "traefik.http.middlewares.ctfd-redirect.redirectscheme.scheme=https"
       - "traefik.http.routers.ctfd-http.middlewares=ctfd-redirect"
-  # Service
+      # Service
       - "traefik.http.services.ctfd-service.loadbalancer.server.port=8000"
- 
+
   # TODO: CTFd 4.0 Migrate to named volumes. Users will likely need to manually migrate existing files
   permissions:
     image: alpine:3.23
     user: root
     volumes:
-      - .data/CTFd/logs:/var/log/CTFd
-      - .data/CTFd/uploads:/var/uploads
+      - ctfd_logs:/var/log/CTFd
+      - ctfd_uploads:/var/uploads
     command: chown -R 1001:1001 /var/uploads /var/log/CTFd
- 
+
   db:
     image: mariadb:10.11
     restart: always
@@ -61,23 +60,28 @@ services:
       - MARIADB_DATABASE=ctfd
       - MARIADB_AUTO_UPGRADE=1
     volumes:
-      - .data/mysql:/var/lib/mysql
+      - ctfd_mysql:/var/lib/mysql
     networks:
       - internal
     command: [mysqld, --character-set-server=utf8mb4, --collation-server=utf8mb4_unicode_ci, --wait_timeout=28800, --log-warnings=0]
- 
+
   cache:
     image: redis:4
     restart: always
     volumes:
-      - .data/redis:/data
+      - ctfd_redis:/data
     networks:
       - internal
- 
+
 networks:
   default:
   internal:
     internal: true
   dokploy-network:
     external: true
- 
+
+volumes:
+  ctfd_logs:
+  ctfd_uploads:
+  ctfd_mysql:
+  ctfd_redis:
