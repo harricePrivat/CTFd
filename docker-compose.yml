@@ -29,12 +29,12 @@ services:
       - dokploy-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.ctfd.rule=Host(`ctf.briceprivat.works`)"
+      - "traefik.http.routers.ctfd.rule=Host(`ctfd.briceprivat.works`)"
       - "traefik.http.routers.ctfd.entrypoints=websecure"
       - "traefik.http.routers.ctfd.tls.certResolver=letsencrypt"
       - "traefik.http.routers.ctfd.service=ctfd-service"
       # HTTP → HTTPS redirect
-      - "traefik.http.routers.ctfd-http.rule=Host(`ctf.briceprivat.works`)"
+      - "traefik.http.routers.ctfd-http.rule=Host(`ctfd.briceprivat.works`)"
       - "traefik.http.routers.ctfd-http.entrypoints=web"
       - "traefik.http.middlewares.ctfd-redirect.redirectscheme.scheme=https"
       - "traefik.http.routers.ctfd-http.middlewares=ctfd-redirect"
