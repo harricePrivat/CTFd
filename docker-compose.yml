@@ -2,8 +2,6 @@ services:
   ctfd:
     build: .
     restart: always
-    ports:
-      - "8000:8000"
     environment:
       - UPLOAD_FOLDER=/var/uploads
       - DATABASE_URL=mysql+pymysql://ctfd:ctfd@db/ctfd
@@ -13,6 +11,7 @@ services:
       - ACCESS_LOG=-
       - ERROR_LOG=-
       - REVERSE_PROXY=true
+      - SECRET_KEY=CHANGE_ME_RANDOM_VALUE
     volumes:
       - .data/CTFd/logs:/var/log/CTFd
       - .data/CTFd/uploads:/var/uploads
@@ -25,9 +24,23 @@ services:
       cache:
         condition: service_started
     networks:
-        default:
-        internal:
-
+      - default
+      - internal
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ctfd.rule=Host(`ctf.briceprivat.works`)"
+      - "traefik.http.routers.ctfd.entrypoints=websecure"
+      - "traefik.http.routers.ctfd.tls.certResolver=letsencrypt"
+      - "traefik.http.routers.ctfd.service=ctfd-service"
+  # HTTP → HTTPS redirect
+      - "traefik.http.routers.ctfd-http.rule=Host(`ctf.briceprivat.works`)"
+      - "traefik.http.routers.ctfd-http.entrypoints=web"
+      - "traefik.http.middlewares.ctfd-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.ctfd-http.middlewares=ctfd-redirect"
+  # Service
+      - "traefik.http.services.ctfd-service.loadbalancer.server.port=8000"
+ 
   # TODO: CTFd 4.0 Migrate to named volumes. Users will likely need to manually migrate existing files
   permissions:
     image: alpine:3.23
@@ -36,17 +49,7 @@ services:
       - .data/CTFd/logs:/var/log/CTFd
       - .data/CTFd/uploads:/var/uploads
     command: chown -R 1001:1001 /var/uploads /var/log/CTFd
-
-  nginx:
-    image: nginx:stable
-    restart: always
-    volumes:
-      - ./conf/nginx/http.conf:/etc/nginx/nginx.conf
-    ports:
-      - 80:80
-    depends_on:
-      - ctfd
-
+ 
   db:
     image: mariadb:10.11
     restart: always
@@ -59,19 +62,21 @@ services:
     volumes:
       - .data/mysql:/var/lib/mysql
     networks:
-        internal:
-    # This command is required to set important mariadb defaults
+      - internal
     command: [mysqld, --character-set-server=utf8mb4, --collation-server=utf8mb4_unicode_ci, --wait_timeout=28800, --log-warnings=0]
-
+ 
   cache:
     image: redis:4
     restart: always
     volumes:
-    - .data/redis:/data
+      - .data/redis:/data
     networks:
-        internal:
-
+      - internal
+ 
 networks:
-    default:
-    internal:
-        internal: true
+  default:
+  internal:
+    internal: true
+  dokploy-network:
+    external: true
+ 
